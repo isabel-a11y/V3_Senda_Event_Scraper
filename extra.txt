@@ -1,0 +1,25 @@
+
+Código para convertir la descarga en excel / CSV
+""" Crear el CSV
+file_path = 'events.csv'
+file_exists = os.path.isfile(file_path)
+
+# Abrir el archivo en modo append
+with open(file_path, mode='a', newline='', encoding='utf-8') as file:
+     writer = csv.writer(file)
+    
+     # Solo escribir encabezado si el archivo no existe
+     if not file_exists:
+          writer.writerow(['Name', 'Start Date', 'End Date', 'Formatted Address', 'Description'])
+
+    # Escribir eventos
+     for event in response.json().get('results', []):
+        title = event.get('title', '')
+        start = event.get('start', '')
+        end = event.get('end', '')
+        address = event.get('geo', {}).get('address', {}).get('formatted_address', '')
+        description = event.get('description', '')
+
+        writer.writerow([title, start, end, address, description])
+
+print("Event data appended to CSV successfully.")"""
