@@ -23,3 +23,45 @@ with open(file_path, mode='a', newline='', encoding='utf-8') as file:
         writer.writerow([title, start, end, address, description])
 
 print("Event data appended to CSV successfully.")"""
+
+
+
+
+
+"""
+          # Busqueda de duplicados
+
+          search_response = requests.post(
+               url="https://api.notion.com/v1/databases/{DATABASE_ID}/query",
+               headers=notion_headers,
+               json={
+                    "filter": {
+                         "property": "Name",
+                         "rich_text": {
+                              "equals": title
+                         }
+                    }
+               }
+          )
+          if search_response.status_code != 200:
+               print(f"❌ Error searching for duplicates: {search_response.text}")
+               continue
+
+          search_results = search_response.json().get("results", [])
+
+          if search_results:
+               print(f"⚠️ Duplicate event found: {title}. Skipping.")
+               continue
+          else:
+               notion_response = requests.post(
+                    url="https://api.notion.com/v1/pages",
+                    headers=notion_headers,
+                    json=payload
+               )
+               if notion_response.status_code == 200:
+                    print(f"✅ Event '{title}' added to Notion.")
+               else:
+                    print(f"❌ Failed to add event '{title}': {notion_response.text}")
+"""
+
+          
