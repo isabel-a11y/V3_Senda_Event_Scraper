@@ -69,7 +69,7 @@ if st.button("🚀 Populate Notion Database"):
                )
 
                if phq_response.status_code != 200:
-                    st.error("❌ Error fetching PredictHQ events:, {phq_response.text}")
+                    st.error(f"❌ Error fetching PredictHQ events:, {phq_response.text}")
                     continue
 
                phq_events = phq_response.json().get("results", [])
