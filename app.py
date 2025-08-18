@@ -13,6 +13,7 @@ NOTION_TOKEN = os.getenv("NOTION_TOKEN")
 DATABASE_ID = os.getenv("DATABASE_ID")
 PREDICTHQ_API_KEY = os.getenv("PREDICTHQ_API_KEY")
 SERPAPI_API_KEY = os.getenv("SERPAPI_API_KEY")
+MAKE_WEBHOOK_URL = os.getenv("MAKE_WEBHOOK_URL")
 
 # Notion API headers
 notion_headers = {
@@ -50,55 +51,7 @@ all_phq_events = []
 if st.button("🚀 Populate Notion Database"):
      if not list_of_keywords:
           st.warning("⚠️ Please enter at least one keyword.")
-     else:
-          for keyword in list_of_keywords:
-               st.write(f"🔍 Searching PredictHQ for: {keyword}")
-               phq_response = requests.get(
-                    url="https://api.predicthq.com/v1/events/",
-                    headers={
-                         "Authorization": f"Bearer {PREDICTHQ_API_KEY}",
-                         "Accept": "application/json"
-                    },
-                    params={
-                         "q": keyword,
-                         "within": "350km@40.4168,-3.7038",
-                         "active.gte": "2025-08-01",
-                         "active.lte": "2025-12-31",
-                         "category": "conferences, community"
-                         }
-               )
-
-               if phq_response.status_code != 200:
-                    st.error(f"❌ Error fetching PredictHQ events:, {phq_response.text}")
-                    continue
-
-               phq_events = phq_response.json().get("results", [])
-               st.write(f"✅ Found {len(phq_events)} events for '{keyword}'")
-               all_phq_events.extend(phq_events)
-
-          st.write(f"\n📦 Total unique PredictHQ events collected: {len(all_phq_events)}")
-
-
-
-          # Process and post PredictHQ events to Notion
-          for event in all_phq_events:
-                    title = event.get("title", "No title")
-                    start_date = event.get("start", "")
-                    address = event.get("geo", {}).get("address", {}).get("formatted_address", "Unknown")
-                    description = event.get("description", "")
-
-                    payload = {
-                         "parent": {"database_id": DATABASE_ID},
-                         "properties": {
-                              "Name": {"title": [{"text": {"content": title}}]},
-                              "Start Date": {"date": {"start": start_date}},
-                              "Location": {"rich_text": [{"text": {"content": address}}]},
-                              "Description": {"rich_text": [{"text": {"content": description[:2000]}}]},
-                              "Review": {"rich_text": [{"text": {"content": "To be Reviewed"}}]}
-                         }
-                    }
-                    post_to_notion(payload)
-
+     
      """ This section of the code does a Google search of events to complete the data collected from PredictHQ. 
      It only looks at events that have a start date in the future, 
      so it will not collect past events, and it wil only collect events of the current month """
@@ -140,18 +93,24 @@ if st.button("🚀 Populate Notion Database"):
 
           address_list = event.get("address", [])
           address = ", ".join(address_list) if address_list else "Unknown"
-          description = event.get("description", "No description provided")
+          description = event.get("description", "No description provided") or ""
+          google_link = event.get("link") or event.get("search_metadata", {}).get("google_url", "")
 
-          payload = {
-                    "parent": {"database_id": DATABASE_ID},
-                    "properties": {
-                         "Name": {"title": [{"text": {"content": title}}]},
-                         "Start Date": {"date": {"start": start_date}},
-                         "Location": {"rich_text": [{"text": {"content": address}}]},
-                         "Description": {"rich_text": [{"text": {"content": description[:2000]}}]},
-                         "Review": {"rich_text": [{"text": {"content": "To be Reviewed"}}]}
-                    }
-          }
 
-          post_to_notion(payload)
+          make_payload = {
+               "name": title,                         # string
+               "location": address,                   # string
+               "description": description[:2000],     # string
+               "start_date": start_date or "",        # ISO string (or "")
+               "review": "Review",                    # matches Notion Select option
+               "event_link": google_link              # url string
+               }
 
+          headers = {"Content-Type": "application/json"}
+          response = requests.post(MAKE_WEBHOOK_URL, json=make_payload, headers=headers)
+          st.success(f"✅ Added: {title}")
+          print("Status:", response.status_code)
+          print("Response:", response.text)
+          
+
+           
